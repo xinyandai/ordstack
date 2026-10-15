@@ -1,9 +1,12 @@
 name: ci
 on:
   push:
+    branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
 jobs:
   test:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
@@ -27,6 +30,7 @@ jobs:
         env:
           RUSTDOCFLAGS: -D warnings
   ui:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -46,6 +50,7 @@ jobs:
         env:
           ORDSTACK_UI: "1"
   miri:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -59,6 +64,7 @@ jobs:
         env:
           MIRIFLAGS: ${{ matrix.flags }}
   sanitizer-and-fuzz:
+    if: github.event_name != 'pull_request' || !github.event.pull_request.draft
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
