@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- `SPool` and `SFixedPool`: growable and fixed-capacity pools with reusable
+  `PoolSlot::Index` values, in-place freeze, and custom `PoolSlot` encodings
+  that can reject use-after-free with generations
+
 ## 0.1.0 (2026-10-15)
 
 First release.

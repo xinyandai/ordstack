@@ -3,7 +3,7 @@
 //! sub-frame, `reset_above` and `trim_above` must leave the block (and its
 //! neighbours) intact.
 
-use ordstack::{Frame, SBox, SFixedVec, SVec, Stack};
+use ordstack::{Frame, SBox, SFixedPool, SFixedVec, SVec, Slot, Stack};
 use std::cell::RefCell;
 
 type Cell<'f> = RefCell<Frame<'f>>;
@@ -170,6 +170,24 @@ fn sfixedvec_into_slice_destructors_use_their_frame() {
         drop(s);
         assert_eq!(*after, pattern(2000));
         assert_eq!(*log.borrow(), [2, 1, 0], "{mode:?}");
+    }
+}
+
+#[test]
+fn sfixedpool_destructor_uses_its_frame() {
+    for mode in MODES {
+        let mut stack = Stack::with_reserve(1 << 16);
+        let frame = RefCell::new(stack.frame());
+        let log = Log::default();
+        let before = frame.borrow_mut().alloc(pattern(1000));
+        let mut pool = SFixedPool::<Slot<R<'_, '_>>>::with_capacity_in(2, &mut frame.borrow_mut());
+        let first = pool.alloc(R::new(1, mode, &frame, &log)).unwrap();
+        let after = frame.borrow_mut().alloc(pattern(2000));
+
+        pool.free(first);
+        assert_eq!(*after, pattern(2000));
+        check_neighbours(&before, &after);
+        assert_eq!(*log.borrow(), [1], "{mode:?}");
     }
 }
 

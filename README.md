@@ -33,6 +33,13 @@ order, and freezes into an `SFrozenMap` in place. The crate documentation's
 *Patterns* section shows several stacks, children on the same stack,
 phases, and how to choose a reservation.
 
+`SPool` is a growable, index-addressed pool that reuses free slots. Its
+`freeze` operation creates an `SFixedPool` with the reserved capacity and
+releases the frame. The fixed pool can allocate from the same frame as the
+values stored in its slots. Implement `PoolSlot` to choose a compact custom
+slot and index representation, including generational indices that reject
+use-after-free after a slot is reused.
+
 With the `allocator-api2` feature, `Frame::allocator` also lets code written
 for `Vec<T, A>` or `hashbrown`'s `HashMap` run on a frame, several
 collections at once. Unlike the crate's own containers, a collection on the
@@ -42,9 +49,9 @@ over an allocator* section says when to use it and when to use `SVec`/`SMap`.
 
 ## Several containers on one frame
 
-A growable container (`SVec`, `SString`, `SMap`) holds `&mut` to its frame,
-so a frame has at most one at a time. That is what lets it grow in place:
-it is always on top. Two at once does not compile:
+A growable container (`SVec`, `SString`, `SMap`, `SPool`) holds `&mut` to
+its frame, so a frame has at most one at a time. That is what lets it grow
+in place: it is always on top. Two at once does not compile:
 
 ```rust,compile_fail,E0499
 use ordstack::{SMap, SVec, Stack};
@@ -57,9 +64,9 @@ tokens.push("a");
 counts.insert("a", 1);
 ```
 
-Frozen values (`SBox`, `SSlice`, `SStr`, `SFrozenMap`) do not hold the
-frame, so any number of them can sit on it. Four ways to use more than one
-container:
+Frozen values (`SBox`, `SSlice`, `SStr`, `SFrozenMap`, `SFixedPool`) do not
+hold the frame, so any number of them can sit on it. Four ways to use more
+than one container:
 
 **One after another.** `freeze` ends a container and gives the frame back;
 what it built stays readable.

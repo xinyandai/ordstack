@@ -15,6 +15,11 @@ the first half, by design: it serves collections this crate does not
 control, and copies a block that is not on top when it grows. It still keeps
 the second half; its argument is "The allocator adapter".
 
+`SPool` uses `SVec` for storage and inherits its exclusive frame borrow.
+`SFixedPool` uses `SSlice` and inherits its storage lifetime. Both pools
+access slots through bounds-checked indexing. No unsafe code relies on the
+free list or on `PoolSlot` returning the correct index.
+
 ## Definitions
 
 - A stack has a region `[0, cap)` and an offset `top`. Offsets are relative

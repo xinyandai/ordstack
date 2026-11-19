@@ -113,6 +113,30 @@
 //! assert_eq!(*total, 5);
 //! ```
 //!
+//! # Pools
+//!
+//! [`SPool`] is a growable, index-addressed pool whose free slots are reused.
+//! [`SFixedPool`] has a fixed capacity and does not hold its frame, so values
+//! owned by the pool and their children can share the stack. `freeze` turns a
+//! growable pool into a fixed pool without changing existing indices.
+//!
+//! ```
+//! use ordstack::{Slot, SPool, Stack};
+//!
+//! let mut st = Stack::with_reserve(1 << 16);
+//! let mut f = st.frame();
+//! let mut pool = SPool::<Slot<&str>>::with_capacity_in(2, &mut f);
+//! let first = pool.alloc("first");
+//! let second = pool.alloc("second");
+//! pool.free(first);
+//! let reused = pool.alloc("replacement");
+//! assert_eq!(reused, first);
+//! assert_eq!(pool.get(second), Some(&"second"));
+//! let frozen = pool.freeze();
+//! let more = f.alloc(1u32);
+//! assert_eq!((*more, frozen.get(reused)), (1, Some(&"replacement")));
+//! ```
+//!
 //! # Collections generic over an allocator
 //!
 //! With the `allocator-api2` feature, `Frame::allocator` returns a
@@ -126,7 +150,9 @@
 //! Choose `SVec`, `SString` and `SMap` when the result should outlive the
 //! scope that builds it (`freeze` gives frame-lifetime handles in place,
 //! `freeze_into` copies to another stack), when insertion order matters
-//! (`SMap`), or when no space may be wasted. Choose the adapter to reuse
+//! (`SMap`), or when no space may be wasted. Choose `SPool` when stable,
+//! reusable indices matter and `SFixedPool` when those slots and values that
+//! allocate on the same frame must coexist. Choose the adapter to reuse
 //! code written for `Vec<T, A>` or `HashMap<K, V, S, A>`, or to grow
 //! several collections on one frame at once; growth that is not at the top
 //! copies and leaves dead space until the adapter's memory is reclaimed,
@@ -319,6 +345,7 @@ mod fixed;
 mod frame;
 mod macros;
 pub mod map;
+mod pool;
 mod region;
 mod slice;
 mod stack;
@@ -332,6 +359,7 @@ pub use error::{AllocError, AllocErrorKind};
 pub use fixed::SFixedVec;
 pub use frame::Frame;
 pub use map::{SFrozenMap, SMap};
+pub use pool::{Index, PoolSlot, SFixedPool, SPool, Slot};
 pub use slice::{SSlice, SStr};
 pub use stack::{DEFAULT_RESERVE, Stack};
 pub use string::SString;
